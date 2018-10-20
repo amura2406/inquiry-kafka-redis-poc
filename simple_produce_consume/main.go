@@ -30,11 +30,11 @@ func main() {
 	producerSubCmd := flag.NewFlagSet("producer", flag.ExitOnError)
 
 	consumerSubCmd.StringVar(&broker, "broker", "localhost", "Kafka broker address")
-	consumerSubCmd.StringVar(&topic, "topic", "test", "Name of the topic")
+	consumerSubCmd.StringVar(&topic, "topic", "poc-test", "Name of the topic")
 	consumerSubCmd.StringVar(&consumerGroup, "cg", "testCG", "Name of the Kafka consumer group")
 
 	producerSubCmd.StringVar(&broker, "broker", "localhost", "Kafka broker address")
-	producerSubCmd.StringVar(&topic, "topic", "test", "Name of the topic")
+	producerSubCmd.StringVar(&topic, "topic", "poc-test", "Name of the topic")
 
 	if len(os.Args) < 2 {
 		fmt.Println("consumer or producer sub command is required !")
