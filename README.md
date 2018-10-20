@@ -65,6 +65,6 @@ $ brew update && brew install vegeta
 
 Now you can follow this link to continue on each approach
 
-* [Simple kafka consumer & producer](simple_produce_consume/README.md)
+* [Simple kafka consumer & producer](simple_produce_consume/)
 * [Blocking HTTP call waiting on redis value by polling](redis_as_integration_point/README.md)
 * [Blocking HTTP call waiting by subscribing to redis](sredis_pubsub_as_integration_point/README.md)

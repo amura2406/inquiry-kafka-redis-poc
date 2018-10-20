@@ -1,4 +1,4 @@
-> Please make sure to prepare the [pre-requisites](README.md) ready before following this tasks.
+> Please make sure to prepare the [pre-requisites](../) ready before following this tasks.
 
 # Summary
 
