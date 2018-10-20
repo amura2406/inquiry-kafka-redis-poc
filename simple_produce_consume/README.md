@@ -16,7 +16,7 @@ $ docker exec -it kafka kafka-topics --create --zookeeper localhost:2181 --repli
 
 Make sure the topic is there with the expected partitions, you can use this command
 
-```bash
+```shell
 $ docker exec -it kafka kafka-topics --zookeeper localhost:2181 --describe --topic poc-test
 ```
 
@@ -28,7 +28,7 @@ Start a new terminal window, change directory to root of the project.
 
 Run the consumer first
 
-```bash
+```shell
 $ go run simple_produce_consume/*.go consumer
 ```
 
@@ -44,7 +44,7 @@ Now start another terminal and change directory to the project's root.
 
 Run the producer
 
-```bash
+```shell
 $ go run simple_produce_consume/*.go producer
 ```
 

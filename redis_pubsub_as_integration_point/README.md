@@ -18,7 +18,7 @@ $ docker exec -it kafka kafka-topics --create --zookeeper localhost:2181 --repli
 
 Make sure the topic is there with the expected partitions, you can use this command
 
-```bash
+```shell
 $ docker exec -it kafka kafka-topics --zookeeper localhost:2181 --describe --topic poc-test
 ```
 
@@ -28,7 +28,7 @@ Or you can navigate to http://localhost:3030/ on your browser and choose **Kafka
 
 Increase the number of file descriptors to accomodate load test
 
-```bash
+```shell
 $ ulimit -n 20000
 ```
 
@@ -38,7 +38,7 @@ Start a new terminal window, change directory to root of the project.
 
 Run the consumer first
 
-```bash
+```shell
 $ go run redis_pubsub_as_integration_point/*.go consumer
 ```
 
@@ -59,7 +59,7 @@ Now start another terminal and change directory to the project's root.
 
 Run the http server
 
-```bash
+```shell
 $ go run redis_pubsub_as_integration_point/*.go http
 ```
 
@@ -82,7 +82,7 @@ Now you can start the load test using custom vegeta load test, by using this com
 - `-dur` how long the test going to be performed, default to 5s
 - `-vars` total num of variance on the request, default to 1000000
 
-```bash
+```shell
 $ go run load_test/http.go -dur=1m -rps=100 | tee result.bin | vegeta report
 ```
 
@@ -106,7 +106,7 @@ $ go run redis_pubsub_as_integration_point/*.go consumer -minD=3s -maxD=5s
 
 Re-run the load test
 
-```bash
+```shell
 $ go run load_test/http.go -dur=1m -rps=100 | tee result.bin | vegeta report
 ```
 
@@ -116,12 +116,12 @@ As expected, this turns out to be satisfying, **100%** success rate, mean and ma
 
 Let's try to use all of my machine computing power, try `-rps=500` and `-rps=1000`.
 
-```bash
+```shell
 $ go run load_test/http.go -dur=1m -rps=500 | tee result.bin | vegeta report
 ```
 
 Result **~88%** success rate:
-```bash
+```shell
 Requests      [total, rate]            30000, 500.01
 Duration      [total, attack, wait]    1m11.290176547s, 59.9986s, 11.291576547s
 Latencies     [mean, 50, 95, 99, max]  12.002787492s, 12.224953731s, 20.625309665s, 20.751974404s, 20.799554682s
@@ -131,12 +131,12 @@ Success       [ratio]                  88.25%
 Status Codes  [code:count]             200:26476  500:3524
 ```
 
-```bash
+```shell
 $ go run load_test/http.go -dur=1m -rps=1000 | tee result.bin | vegeta report
 ```
 
 Result **~20%** success rate:
-```bash
+```shell
 Requests      [total, rate]            60000, 999.72
 Duration      [total, attack, wait]    1m0.016706s, 1m0.016706s, 0s
 Latencies     [mean, 50, 95, 99, max]  1.602237798s, 0s, 11.150638556s, 12.78156674s, 28.499800629s

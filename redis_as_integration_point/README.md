@@ -18,7 +18,7 @@ $ docker exec -it kafka kafka-topics --create --zookeeper localhost:2181 --repli
 
 Make sure the topic is there with the expected partitions, you can use this command
 
-```bash
+```shell
 $ docker exec -it kafka kafka-topics --zookeeper localhost:2181 --describe --topic poc-test
 ```
 
@@ -28,7 +28,7 @@ Or you can navigate to http://localhost:3030/ on your browser and choose **Kafka
 
 Increase the number of file descriptors to accomodate load test
 
-```bash
+```shell
 $ ulimit -n 20000
 ```
 
@@ -38,7 +38,7 @@ Start a new terminal window, change directory to root of the project.
 
 Run the consumer first
 
-```bash
+```shell
 $ go run redis_as_integration_point/*.go consumer
 ```
 
@@ -58,7 +58,7 @@ Now start another terminal and change directory to the project's root.
 
 Run the http server
 
-```bash
+```shell
 $ go run redis_as_integration_point/*.go http
 ```
 
@@ -80,7 +80,7 @@ Now you can start the load test using custom vegeta load test, by using this com
 - `-dur` how long the test going to be performed, default to 5s
 - `-vars` total num of variance on the request, default to 1000000
 
-```bash
+```shell
 $ go run load_test/http.go -dur=1m -rps=100 | tee result.bin | vegeta report
 ```
 
@@ -96,7 +96,7 @@ BUT
 
 Change slightly the number of RPS to 500, there are a lot of 500 errors since redis connections exhaustion. Success rate is ~40%
 
-```bash
+```shell
 $ go run load_test/http.go -dur=1m -rps=500 | tee result.bin | vegeta report
 ```
 
@@ -108,13 +108,13 @@ It's even worse if consumer is set using `-async=false`, since the consumer only
 
 Restart the consumer using this:
 
-```base
+```shell
 $ go run redis_as_integration_point/*.go consumer -async=false
 ```
 
 Re-run the load test
 
-```bash
+```shell
 $ go run load_test/http.go -dur=1m -rps=100 | tee result.bin | vegeta report
 ```
 
@@ -134,7 +134,7 @@ $ go run redis_as_integration_point/*.go consumer -async=false -minD=3s -maxD=5s
 
 Re-run the load test
 
-```bash
+```shell
 $ go run load_test/http.go -dur=1m -rps=100 | tee result.bin | vegeta report
 ```
 
