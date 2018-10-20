@@ -2,64 +2,33 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"math/rand"
 	"time"
 
 	"github.com/bxcodec/faker"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/go-redis/redis"
-	colorable "github.com/mattn/go-colorable"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	broker        string
-	topic         string
-	consumerGroup string
-	redisAddress  string
-	redisChannel  string
-	asyncConsume  bool
-	delayMin      time.Duration
-	delayMax      time.Duration
-	consumer      *kafka.Consumer
-	redisCli      *redis.Client
-	random        *rand.Rand
+	consumer *kafka.Consumer
+	random   *rand.Rand
 )
 
-type RequestMessage struct {
-	ID        string
-	Name      string
-	Date      string
-	Timestamp time.Time
-}
-
-type ResponseMessage struct {
-	ID        string  `faker:"username"`
-	Name      string  `faker:"name"`
-	Date      string  `faker:"date"`
-	Currency  string  `faker:"currency"`
-	Amount    float64 `faker:"amount"`
-	Timestamp time.Time
-}
-
-func main() {
-	flag.StringVar(&broker, "broker", "localhost", "Kafka broker address")
-	flag.StringVar(&topic, "topic", "test", "Name of the topic")
-	flag.StringVar(&consumerGroup, "cg", "testCG", "Name of the Kafka consumer group")
-	flag.StringVar(&redisAddress, "redisAddr", "localhost:6379", "Redis address")
-	flag.StringVar(&redisChannel, "redisChan", "inquiry-response", "Redis channel to publish")
-	flag.DurationVar(&delayMin, "minD", 0*time.Second, "Minimum synthetic delay duration")
-	flag.DurationVar(&delayMax, "maxD", 0*time.Second, "Maximum synthetic delay duration")
-	flag.BoolVar(&asyncConsume, "async", true, "Whether to process each message from kafka asynchronously or not")
-
-	flag.Parse()
-
-	log.SetOutput(colorable.NewColorableStdout())
+func StartConsumer() {
+	redisOpts := &redis.Options{
+		Addr:         redisAddress,
+		Password:     "", // no password set
+		DB:           0,  // use default DB
+		PoolSize:     10000,
+		MinIdleConns: 5,
+		PoolTimeout:  5 * time.Second,
+	}
 
 	initRandom()
 	initConsumer()
-	initRedis()
+	initRedis(redisOpts)
 
 	log.Infoln("Listening now...")
 	for {
@@ -104,23 +73,6 @@ func initConsumer() {
 	c.SubscribeTopics([]string{topic}, nil)
 
 	consumer = c
-}
-
-func initRedis() {
-	log.Infof("Initiating redis...")
-	redisCli = redis.NewClient(&redis.Options{
-		Addr:         redisAddress,
-		Password:     "", // no password set
-		DB:           0,  // use default DB
-		PoolSize:     10000,
-		MinIdleConns: 5,
-		PoolTimeout:  5 * time.Second,
-	})
-
-	err := redisCli.Ping().Err()
-	if err != nil {
-		panic(err)
-	}
 }
 
 func processMessage(msg *kafka.Message) {

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"net/http"
 	"sync"
 	"time"
@@ -11,52 +10,32 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
-	colorable "github.com/mattn/go-colorable"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	broker       string
-	topic        string
-	redisAddress string
-	redisChannel string
-	redisCli     *redis.Client
-	producer     *kafka.Producer
-	pubSub       *redis.PubSub
-	inqWaitMap   map[string](chan *Response)
-	inqMapMutex  sync.RWMutex
+	producer    *kafka.Producer
+	pubSub      *redis.PubSub
+	inqWaitMap  map[string](chan *ResponseMessage)
+	inqMapMutex sync.RWMutex
 )
 
-type Message struct {
-	ID        string `faker:"username"`
-	Name      string `faker:"name"`
-	Date      string `faker:"date"`
-	Timestamp time.Time
-}
-
-type Response struct {
-	ID        string
-	Name      string
-	Date      string
-	Currency  string
-	Amount    float64
-	Timestamp *time.Time
-}
-
-func main() {
-	flag.StringVar(&broker, "broker", "localhost", "Kafka broker address")
-	flag.StringVar(&topic, "topic", "test", "Name of the topic")
-	flag.StringVar(&redisAddress, "redisAddr", "localhost:6379", "Redis address")
-	flag.StringVar(&redisChannel, "redisChan", "inquiry-response", "Redis channel to listen")
-
-	flag.Parse()
-	inqWaitMap = make(map[string](chan *Response))
+func StartHttpServer() {
+	inqWaitMap = make(map[string](chan *ResponseMessage))
 	inqMapMutex = sync.RWMutex{}
 
-	log.SetOutput(colorable.NewColorableStdout())
+	redisOpts := &redis.Options{
+		Addr:         redisAddress,
+		Password:     "", // no password set
+		DB:           0,  // use default DB
+		PoolSize:     1,
+		MinIdleConns: 1,
+		PoolTimeout:  1 * time.Second,
+	}
 
 	initProducer()
-	initRedis()
+	initRedis(redisOpts)
+	initPubsubRedis()
 
 	r := mux.NewRouter()
 	r.HandleFunc("/inquiry/{id}", inquiry).Methods("GET")
@@ -80,26 +59,11 @@ func initProducer() {
 	producer = p
 }
 
-func initRedis() {
-	log.Infof("Initiating redis...")
-	redisCli = redis.NewClient(&redis.Options{
-		Addr:         redisAddress,
-		Password:     "", // no password set
-		DB:           0,  // use default DB
-		PoolSize:     1,
-		MinIdleConns: 1,
-		PoolTimeout:  1 * time.Second,
-	})
-
-	err := redisCli.Ping().Err()
-	if err != nil {
-		panic(err)
-	}
-
+func initPubsubRedis() {
 	pubSub = redisCli.Subscribe(redisChannel)
 
 	// Wait for confirmation that subscription is created before publishing anything.
-	_, err = pubSub.Receive()
+	_, err := pubSub.Receive()
 	if err != nil {
 		panic(err)
 	}
@@ -147,7 +111,7 @@ func inquiry(w http.ResponseWriter, r *http.Request) {
 }
 
 func buildMessage(id string) ([]byte, error) {
-	message := Message{}
+	message := RequestMessage{}
 	err := faker.FakeData(&message)
 	if err != nil {
 		return nil, err
@@ -162,8 +126,8 @@ func buildMessage(id string) ([]byte, error) {
 	return mBytes, nil
 }
 
-func registerWaitChannel(id string) chan *Response {
-	ch := make(chan *Response, 1)
+func registerWaitChannel(id string) chan *ResponseMessage {
+	ch := make(chan *ResponseMessage, 1)
 	inqMapMutex.Lock()
 	inqWaitMap[id] = ch
 	inqMapMutex.Unlock()
@@ -194,7 +158,7 @@ func listenFromRedisChannel() {
 	ch := pubSub.Channel()
 
 	for msg := range ch {
-		resp := Response{}
+		resp := ResponseMessage{}
 		err := json.Unmarshal([]byte(msg.Payload), &resp)
 		if err != nil {
 			log.Errorf("JSON Parse Error: %v\n", err)

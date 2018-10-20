@@ -2,7 +2,7 @@
 
 # Summary
 
-In this case, we're going to demonstrate a blocking HTTP call that's going to wait for data from redis while asynchronously publish message to kafka so that the consumer will provide the data into the pre-determined redis key. At the end, we're going to try load test the HTTP server to see whether the solution is good enough.
+In this case, we're going to demonstrate a blocking HTTP call that's going to wait for data from redis by polling the key frequently up to max try count while asynchronously publish message to kafka so that the consumer will provide the data into the pre-determined redis key. At the end, we're going to try load test the HTTP server to see whether the solution is good enough.
 
 ## Step 1
 
@@ -26,6 +26,14 @@ Or you can navigate to http://localhost:3030/ on your browser and choose **Kafka
 
 ## Step 3
 
+Increase the number of file descriptors to accomodate load test
+
+```bash
+$ ulimit -n 20000
+```
+
+## Step 4
+
 Start a new terminal window, change directory to root of the project.
 
 Run the consumer first
@@ -44,7 +52,7 @@ $ go run redis_as_integration_point/*.go consumer
 - `-maxD` maximum synthetic delay duration, default to 0s
 - `-async` whether to process each message from kafka asynchronously or not, default to true
 
-### Step 4
+## Step 5
 
 Now start another terminal and change directory to the project's root.
 
@@ -62,7 +70,7 @@ $ go run redis_as_integration_point/*.go http
 
 You can stop the http server using `Ctrl+C`
 
-### Step 5
+## Step 6
 
 Now you can start the load test using custom vegeta load test, by using this command:
 
@@ -92,7 +100,7 @@ Change slightly the number of RPS to 500, there are a lot of 500 errors since re
 $ go run load_test/http.go -dur=1m -rps=500 | tee result.bin | vegeta report
 ```
 
-![](https://media.giphy.com/media/DzIIiyZvSdzxu/giphy.gif)
+![](https://media.giphy.com/media/Ty9Sg8oHghPWg/giphy.gif)
 
 And...
 
@@ -115,3 +123,23 @@ The result was very very dissapointing
 Success rate is **8.22%**, with average latency **~11 secs**, 99th percentile **~13 secs**
 
 ![](https://media.giphy.com/media/1BXa2alBjrCXC/giphy.gif)
+
+Those test we did is assuming each request will be done without delay on the consumer, if we introduce synthetic delay to simulate real world scenarios to 3-5 seconds each request, even on 100 rps it's not acceptable.
+
+Restart the consumer using this:
+
+```base
+$ go run redis_as_integration_point/*.go consumer -async=false -minD=3s -maxD=5s
+```
+
+Re-run the load test
+
+```bash
+$ go run load_test/http.go -dur=1m -rps=100 | tee result.bin | vegeta report
+```
+
+With the success rate just merely **~0.03%**, too many request waiting for redis connection from the pool during polling resulting in timeout / HTTP 500 error.
+
+![](https://media.giphy.com/media/Pch8FiF08bc1G/giphy.gif)
+
+Seems we can't use this approach...
