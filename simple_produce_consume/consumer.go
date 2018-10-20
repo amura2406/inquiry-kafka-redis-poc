@@ -2,29 +2,17 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"os"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	colorable "github.com/mattn/go-colorable"
 	log "github.com/sirupsen/logrus"
 )
 
-func main() {
-	if len(os.Args) != 3 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <broker> <topic>\n", os.Args[0])
-		os.Exit(1)
-	}
-
-	log.SetOutput(colorable.NewColorableStdout())
-	broker := os.Args[1]
-	topic := os.Args[2]
-
+func StartConsumer() {
 	log.Infoln("Consumer starting...")
 
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": broker,
-		"group.id":          "poc-cg",
+		"group.id":          consumerGroup,
 		"auto.offset.reset": "earliest",
 	})
 
