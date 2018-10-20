@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"net/http"
 	"time"
@@ -11,7 +10,6 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
-	colorable "github.com/mattn/go-colorable"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,38 +18,21 @@ const (
 )
 
 var (
-	broker       string
-	topic        string
-	redisAddress string
-	redisCli     *redis.Client
-	producer     *kafka.Producer
+	producer *kafka.Producer
 )
 
-type Message struct {
-	ID   string `faker:"username"`
-	Name string `faker:"name"`
-	Date string `faker:"date"`
-}
-
-type Response struct {
-	ID       string
-	Name     string
-	Date     string
-	Currency string
-	Amount   float64
-}
-
-func main() {
-	flag.StringVar(&broker, "broker", "localhost", "Kafka broker address")
-	flag.StringVar(&topic, "topic", "test", "Name of the topic")
-	flag.StringVar(&redisAddress, "redisAddr", "localhost:6379", "Redis address")
-
-	flag.Parse()
-
-	log.SetOutput(colorable.NewColorableStdout())
+func StartHttpServer() {
+	redisOpts := &redis.Options{
+		Addr:         redisAddress,
+		Password:     "", // no password set
+		DB:           0,  // use default DB
+		PoolSize:     10000,
+		MinIdleConns: 100,
+		PoolTimeout:  1 * time.Second,
+	}
 
 	initProducer()
-	initRedis()
+	initRedis(redisOpts)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/inquiry/{id}", inquiry).Methods("GET")
@@ -75,27 +56,10 @@ func initProducer() {
 	producer = p
 }
 
-func initRedis() {
-	log.Infof("Initiating redis...")
-	redisCli = redis.NewClient(&redis.Options{
-		Addr:         redisAddress,
-		Password:     "", // no password set
-		DB:           0,  // use default DB
-		PoolSize:     10000,
-		MinIdleConns: 100,
-		PoolTimeout:  1 * time.Second,
-	})
-
-	err := redisCli.Ping().Err()
-	if err != nil {
-		panic(err)
-	}
-}
-
 func inquiry(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	message := Message{}
+	message := RequestMessage{}
 	err := faker.FakeData(&message)
 	if err != nil {
 		panic(err)
@@ -135,7 +99,7 @@ func inquiry(w http.ResponseWriter, r *http.Request) {
 				log.Warnf("Redis Err: %v\n", err)
 				continue
 			}
-			res := Response{}
+			res := ResponseMessage{}
 			err = json.Unmarshal(resBytes, &res)
 			if err != nil {
 				panic(err)

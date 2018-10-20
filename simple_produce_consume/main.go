@@ -53,7 +53,9 @@ func main() {
 
 	if consumerSubCmd.Parsed() {
 		StartConsumer()
-	} else {
+	}
+
+	if producerSubCmd.Parsed() {
 		StartProducer()
 	}
 }
